@@ -10,6 +10,7 @@ interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
+  debug?: { status?: number; data?: any; error?: any };
 }
 
 // Reusable API request function
@@ -34,22 +35,28 @@ export async function apiRequest<T>(
       headers,
     };
 
+    console.log(`Making request to ${API_BASE_URL}${endpoint}`, config);
+
     // Make the request
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     const data = await response.json();
 
+    console.log(`Response from ${endpoint}:`, { status: response.status, data });
+
     // Handle HTTP errors
     if (!response.ok) {
       const errorMessage = data.message || 'Something went wrong';
+      console.error(`API Error (${response.status}):`, data);
       toast.error(errorMessage);
-      return { error: errorMessage };
+      return { error: errorMessage, debug: { status: response.status, data } };
     }
 
     return { data: data as T, message: data.message };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Network error';
+    console.error('API Request failed:', error);
     toast.error(errorMessage);
-    return { error: errorMessage };
+    return { error: errorMessage, debug: { error } };
   }
 }
 

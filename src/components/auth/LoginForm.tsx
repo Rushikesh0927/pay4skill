@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,12 +28,16 @@ const LoginForm = () => {
         description: "Welcome back to Pay4Skill!",
       });
       
-      // Check if it's an admin login
+      // Check user role and redirect to appropriate dashboard
       if (email.toLowerCase().includes('admin')) {
         navigate('/admin/dashboard');
+      } else if (email.toLowerCase().includes('student')) {
+        navigate('/student/dashboard');
+      } else if (email.toLowerCase().includes('employer')) {
+        navigate('/employer/dashboard');
       } else {
-        // Redirect to appropriate dashboard would happen here
-        // For now we'll just stay on the same page
+        // Default to student dashboard if role is not determined
+        navigate('/student/dashboard');
       }
     } catch (error) {
       toast({

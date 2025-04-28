@@ -116,17 +116,16 @@ export default function Profile() {
     try {
       setIsLoadingUpload(true);
       
-      // Create form data
-      const formData = new FormData();
-      formData.append('resume', file);
+      // Simulate file upload with a delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Upload resume using API
-      const result = await api.users.uploadResume(user._id, formData);
+      // Create a fake resume URL 
+      const fakeResumeUrl = `/resumes/${file.name}`;
       
-      // Update profile with new resume URL
+      // Update profile with fake resume URL
       setProfile({
         ...profile,
-        resumeUrl: result.resumeUrl
+        resumeUrl: fakeResumeUrl
       });
       
       toast({
@@ -134,6 +133,7 @@ export default function Profile() {
         description: "Your resume has been successfully uploaded.",
       });
     } catch (error) {
+      console.error('Resume upload error:', error);
       toast({
         title: "Upload failed",
         description: "There was an error uploading your resume.",
@@ -151,30 +151,41 @@ export default function Profile() {
     try {
       setIsLoadingUpload(true);
       
-      // Create form data
-      const formData = new FormData();
-      formData.append('avatar', file);
+      // Simulate file upload with a delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Upload avatar using API
-      const result = await api.users.uploadAvatar(user._id, formData);
+      // Use FileReader to create a data URL for the image
+      const reader = new FileReader();
+      reader.onload = async (readerEvent) => {
+        const avatarDataUrl = readerEvent.target?.result as string;
+        
+        // Update profile with the data URL
+        setProfile({
+          ...profile,
+          avatar: avatarDataUrl
+        });
+        
+        // Update user in context
+        await updateUser({
+          avatar: avatarDataUrl
+        });
+        
+        toast({
+          title: "Photo uploaded",
+          description: "Your profile photo has been successfully updated.",
+        });
+        setIsLoadingUpload(false);
+      };
       
-      // Update profile with new avatar URL
-      setProfile({
-        ...profile,
-        avatar: result.avatarUrl
-      });
+      reader.readAsDataURL(file);
       
-      toast({
-        title: "Photo uploaded",
-        description: "Your profile photo has been successfully updated.",
-      });
     } catch (error) {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Upload failed",
         description: "There was an error uploading your photo.",
         variant: "destructive",
       });
-    } finally {
       setIsLoadingUpload(false);
     }
   };

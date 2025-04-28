@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '@/lib/api';
 
 type UserRole = 'student' | 'employer' | 'admin';
 
@@ -44,14 +43,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Use the API to authenticate with MongoDB
-      const response = await api.auth.login({ email, password });
+      // In a real implementation, this would be an API call to authenticate
+      // For now, simulate API login and determine user role from email
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Store the user data and token
-      setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('token', response.token);
+      // Simulate response data
+      let userData: User;
+      
+      if (email.toLowerCase().includes('admin')) {
+        userData = {
+          _id: 'admin-123',
+          fullName: 'Admin User',
+          email: email,
+          role: 'admin',
+        };
+      } else if (email.toLowerCase().includes('employer')) {
+        userData = {
+          _id: 'employer-123',
+          fullName: 'Employer User',
+          email: email,
+          role: 'employer',
+          location: 'San Francisco, CA',
+          bio: 'Tech company looking for skilled developers',
+        };
+      } else {
+        userData = {
+          _id: 'student-123',
+          fullName: 'Student User',
+          email: email,
+          role: 'student',
+          bio: 'Passionate student looking for opportunities',
+          location: 'New York, USA',
+          education: 'Bachelor of Computer Science',
+          experience: '1 year of freelance work',
+          skills: ['JavaScript', 'React', 'Node.js'],
+        };
+      }
+      
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      // Store a fake token to simulate authentication
+      localStorage.setItem('token', 'fake-jwt-token');
+      return;
     } catch (error) {
+      console.error('Login error:', error);
       throw new Error('Login failed');
     } finally {
       setIsLoading(false);
@@ -61,14 +96,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (userData: any) => {
     setIsLoading(true);
     try {
-      // Use the API to register user in MongoDB
-      const response = await api.auth.register(userData);
+      // In a real implementation, this would be an API call to create user
+      // For now, simulate API registration
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Store the user data and token
-      setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('token', response.token);
+      // Create a simulated user based on registration data
+      const newUser: User = {
+        _id: `${userData.role}-${Date.now()}`,
+        fullName: userData.fullName,
+        email: userData.email,
+        role: userData.role as UserRole,
+      };
+      
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      // Store a fake token to simulate authentication
+      localStorage.setItem('token', 'fake-jwt-token');
+      return;
     } catch (error) {
+      console.error('Signup error:', error);
       throw new Error('Signup failed');
     } finally {
       setIsLoading(false);
@@ -87,12 +133,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     setIsLoading(true);
     try {
-      // Use the API to update user in MongoDB
-      const updatedUser = await api.users.update(user._id, userData);
+      // In a real implementation, this would be an API call to update user
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
+      const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      return;
     } catch (error) {
+      console.error('Update user error:', error);
       throw new Error('Failed to update user');
     } finally {
       setIsLoading(false);

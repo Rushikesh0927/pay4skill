@@ -107,111 +107,108 @@ export const apiEndpoints = {
   // Auth endpoints
   auth: {
     login: (data: { email: string; password: string }) => 
-      api.post<{ token: string }>('/auth/login', data),
+      api.post<{ token: string }>('/api/auth/login', data),
     register: (data: any) => 
-      api.post('/auth/register', data),
+      api.post('/api/auth/register', data),
     forgotPassword: (email: string) => 
-      api.post('/auth/forgot-password', { email }),
+      api.post('/api/auth/forgot-password', { email }),
     resetPassword: (data: { token: string; password: string }) => 
-      api.post('/auth/reset-password', data),
-    getCurrentUser: () => api.get('/auth/user'),
+      api.post('/api/auth/reset-password', data),
+    getCurrentUser: () => api.get('/api/auth/user'),
   },
   
   // User endpoints
   users: {
-    getAll: () => api.get('/users'),
-    getById: (id: string) => api.get(`/users/${id}`),
-    create: (data: any) => api.post('/users', data),
-    update: (id: string, data: any) => api.put(`/users/${id}`, data),
+    getAll: () => api.get('/api/users'),
+    getById: (id: string) => api.get(`/api/users/${id}`),
+    create: (data: any) => api.post('/api/users', data),
+    update: (id: string, data: any) => api.put(`/api/users/${id}`, data),
     uploadAvatar: (id: string, formData: FormData) => 
-      api.post(`/users/${id}/avatar`, { 
+      api.post(`/api/users/${id}/avatar`, formData, { 
         headers: {}, // Let browser set the content type with boundary
-        body: formData 
       }),
     uploadResume: (id: string, formData: FormData) => 
-      api.post(`/users/${id}/resume`, { 
+      api.post(`/api/users/${id}/resume`, formData, { 
         headers: {}, // Let browser set the content type with boundary
-        body: formData 
       }),
   },
   
   // Task endpoints
   tasks: {
-    getAll: () => api.get('/tasks'),
-    getById: (id: string) => api.get(`/tasks/${id}`),
-    create: (data: any) => api.post('/tasks', data),
-    update: (id: string, data: any) => api.put(`/tasks/${id}`, data),
-    getByEmployer: (employerId: string) => api.get(`/tasks/employer/${employerId}`),
+    getAll: () => api.get('/api/tasks'),
+    getById: (id: string) => api.get(`/api/tasks/${id}`),
+    create: (data: any) => api.post('/api/tasks', data),
+    update: (id: string, data: any) => api.put(`/api/tasks/${id}`, data),
+    getByEmployer: (employerId: string) => api.get(`/api/tasks/employer/${employerId}`),
   },
   
   // Application endpoints
   applications: {
-    getAll: () => api.get('/applications'),
-    getById: (id: string) => api.get(`/applications/${id}`),
-    create: (data: any) => api.post('/applications', data),
-    updateStatus: (id: string, status: string) => api.patch(`/applications/${id}/status`, { status }),
-    getByStudent: (studentId: string) => api.get(`/applications/student/${studentId}`),
-    getByTask: (taskId: string) => api.get(`/applications/task/${taskId}`),
+    getAll: () => api.get('/api/applications'),
+    getById: (id: string) => api.get(`/api/applications/${id}`),
+    create: (data: any) => api.post('/api/applications', data),
+    updateStatus: (id: string, status: string) => api.patch(`/api/applications/${id}/status`, { status }),
+    getByStudent: (studentId: string) => api.get(`/api/applications/student/${studentId}`),
+    getByTask: (taskId: string) => api.get(`/api/applications/task/${taskId}`),
   },
   
   // Payment endpoints
   payments: {
-    getAll: () => api.get('/payments'),
-    getById: (id: string) => api.get(`/payments/${id}`),
-    create: (data: any) => api.post('/payments', data),
-    updateStatus: (id: string, status: string) => api.patch(`/payments/${id}/status`, { status }),
-    getByEmployer: (employerId: string) => api.get(`/payments/employer/${employerId}`),
-    getByStudent: (studentId: string) => api.get(`/payments/student/${studentId}`),
+    getAll: () => api.get('/api/payments'),
+    getById: (id: string) => api.get(`/api/payments/${id}`),
+    create: (data: any) => api.post('/api/payments', data),
+    updateStatus: (id: string, status: string) => api.patch(`/api/payments/${id}/status`, { status }),
+    getByEmployer: (employerId: string) => api.get(`/api/payments/employer/${employerId}`),
+    getByStudent: (studentId: string) => api.get(`/api/payments/student/${studentId}`),
     uploadProof: (id: string, formData: FormData) => 
-      api.post(`/payments/${id}/proof`, { 
+      api.post(`/api/payments/${id}/proof`, formData, { 
         headers: {}, // Let browser set the content type with boundary
-        body: formData 
       }),
   },
   
   // Message endpoints
   messages: {
-    getAll: () => api.get('/messages'),
-    getById: (id: string) => api.get(`/messages/${id}`),
-    create: (data: any) => api.post('/messages', data),
-    markAsRead: (id: string) => api.patch(`/messages/${id}/read`),
+    getAll: () => api.get('/api/messages'),
+    getById: (id: string) => api.get(`/api/messages/${id}`),
+    create: (data: any) => api.post('/api/messages', data),
+    markAsRead: (id: string) => api.patch(`/api/messages/${id}/read`),
     getConversation: (userId1: string, userId2: string, taskId?: string) => {
       const endpoint = taskId 
-        ? `/messages/conversation/${userId1}/${userId2}?taskId=${taskId}`
-        : `/messages/conversation/${userId1}/${userId2}`;
+        ? `/api/messages/conversation/${userId1}/${userId2}?taskId=${taskId}`
+        : `/api/messages/conversation/${userId1}/${userId2}`;
       return api.get(endpoint);
     },
-    getUnreadCount: (userId: string) => api.get(`/messages/unread/${userId}`),
-    uploadAttachment: (formData: FormData) => 
-      api.post('/messages/attachment', formData, { 
-        headers: {}, // Let browser set the content type with boundary
-      }),
+    getUnreadCount: (userId: string) => api.get(`/api/messages/unread/${userId}`),
+    uploadAttachment: (formData: FormData) => {
+      const options = { headers: {} }; // Let browser set content type with boundary
+      return api.post('/api/messages/attachment', formData, options);
+    },
   },
   
   // Review endpoints
   reviews: {
-    getAll: () => api.get('/reviews'),
-    getById: (id: string) => api.get(`/reviews/${id}`),
-    create: (data: any) => api.post('/reviews', data),
-    update: (id: string, data: any) => api.put(`/reviews/${id}`, data),
-    getByUser: (userId: string) => api.get(`/reviews/user/${userId}`),
-    getByTask: (taskId: string) => api.get(`/reviews/task/${taskId}`),
+    getAll: () => api.get('/api/reviews'),
+    getById: (id: string) => api.get(`/api/reviews/${id}`),
+    create: (data: any) => api.post('/api/reviews', data),
+    update: (id: string, data: any) => api.put(`/api/reviews/${id}`, data),
+    getByUser: (userId: string) => api.get(`/api/reviews/user/${userId}`),
+    getByTask: (taskId: string) => api.get(`/api/reviews/task/${taskId}`),
   },
   
   // Badges endpoints
   badges: {
-    getAll: () => api.get('/badges'),
-    getByUser: (userId: string) => api.get(`/badges/user/${userId}`),
+    getAll: () => api.get('/api/badges'),
+    getByUser: (userId: string) => api.get(`/api/badges/user/${userId}`),
   },
   
   // Analytics endpoints
   analytics: {
-    getDashboard: (userId: string) => api.get(`/analytics/dashboard/${userId}`),
-    getTasksStats: (period: string) => api.get(`/analytics/tasks?period=${period}`),
-    getUsersStats: (period: string) => api.get(`/analytics/users?period=${period}`),
-    getPaymentsStats: (period: string) => api.get(`/analytics/payments?period=${period}`),
+    getDashboard: (userId: string) => api.get(`/api/analytics/dashboard/${userId}`),
+    getTasksStats: (period: string) => api.get(`/api/analytics/tasks?period=${period}`),
+    getUsersStats: (period: string) => api.get(`/api/analytics/users?period=${period}`),
+    getPaymentsStats: (period: string) => api.get(`/api/analytics/payments?period=${period}`),
   },
   
   // Health check
-  health: () => api.get('/health'),
+  health: () => api.get('/api/health'),
 }; 

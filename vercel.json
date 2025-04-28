@@ -2,10 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/src/index.ts",
-      "use": "@vercel/node"
-    },
-    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -15,11 +11,15 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "server/src/index.ts"
+      "src": "^/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
-      "src": "/(.*)",
+      "src": "^/(.*).(js|css|svg|png|jpg|jpeg|gif|ico)$",
+      "dest": "/$1.$2" 
+    },
+    {
+      "src": ".*",
       "dest": "/index.html"
     }
   ],

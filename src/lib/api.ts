@@ -1,67 +1,128 @@
-// API configuration
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://pay4skill-api.onrender.com' 
-  : 'http://localhost:5000';
+import { toast } from "sonner";
 
-// Helper function for API requests
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const url = `${API_URL}${endpoint}`;
-  
-  // Get token from localStorage if it exists
-  const token = localStorage.getItem('token');
-  
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-  };
-  
-  // Add authorization header if token exists
-  const headers = token
-    ? { ...defaultHeaders, Authorization: `Bearer ${token}`, ...options.headers }
-    : { ...defaultHeaders, ...options.headers };
+// Configure API base URL based on environment
+const API_BASE_URL = import.meta.env.PROD 
+  ? '/api' // Use relative path for production with Vercel (proxied via vercel.json)
+  : 'http://localhost:5000/api'; // Development URL
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Something went wrong');
-  }
-
-  return response.json();
+// Interface for API response
+interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
-// API endpoints
+// Reusable API request function
+export async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  try {
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    
+    // Default headers
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+
+    // Merge options
+    const config = {
+      ...options,
+      headers,
+    };
+
+    // Make the request
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const data = await response.json();
+
+    // Handle HTTP errors
+    if (!response.ok) {
+      const errorMessage = data.message || 'Something went wrong';
+      toast.error(errorMessage);
+      return { error: errorMessage };
+    }
+
+    return { data: data as T, message: data.message };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Network error';
+    toast.error(errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+// Helper methods for different request types
 export const api = {
+  get: <T>(endpoint: string, options?: RequestInit) => 
+    apiRequest<T>(endpoint, { method: 'GET', ...options }),
+  
+  post: <T>(endpoint: string, data: unknown, options?: RequestInit) => 
+    apiRequest<T>(endpoint, { 
+      method: 'POST', 
+      body: JSON.stringify(data), 
+      ...options 
+    }),
+  
+  put: <T>(endpoint: string, data: unknown, options?: RequestInit) => 
+    apiRequest<T>(endpoint, { 
+      method: 'PUT', 
+      body: JSON.stringify(data), 
+      ...options 
+    }),
+  
+  patch: <T>(endpoint: string, data: unknown, options?: RequestInit) => 
+    apiRequest<T>(endpoint, { 
+      method: 'PATCH', 
+      body: JSON.stringify(data), 
+      ...options 
+    }),
+  
+  delete: <T>(endpoint: string, options?: RequestInit) => 
+    apiRequest<T>(endpoint, { method: 'DELETE', ...options }),
+};
+
+// Usage example:
+/*
+  // Get all tasks
+  const { data, error } = await api.get<Task[]>('/tasks');
+  
+  // Create a new task
+  const { data, error } = await api.post<Task>('/tasks', { 
+    title: 'New Task',
+    description: 'Task description'
+  });
+*/
+
+// API endpoints
+export const apiEndpoints = {
   // Auth endpoints
   auth: {
     login: (data: { email: string; password: string }) => 
-      apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+      api.post<{ token: string }>('/auth/login', data),
     register: (data: any) => 
-      apiRequest('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+      api.post('/auth/register', data),
     forgotPassword: (email: string) => 
-      apiRequest('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+      api.post('/auth/forgot-password', { email }),
     resetPassword: (data: { token: string; password: string }) => 
-      apiRequest('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
-    getCurrentUser: () => apiRequest('/api/auth/user'),
+      api.post('/auth/reset-password', data),
+    getCurrentUser: () => api.get('/auth/user'),
   },
   
   // User endpoints
   users: {
-    getAll: () => apiRequest('/api/users'),
-    getById: (id: string) => apiRequest(`/api/users/${id}`),
-    create: (data: any) => apiRequest('/api/users', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => apiRequest(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    getAll: () => api.get('/users'),
+    getById: (id: string) => api.get(`/users/${id}`),
+    create: (data: any) => api.post('/users', data),
+    update: (id: string, data: any) => api.put(`/users/${id}`, data),
     uploadAvatar: (id: string, formData: FormData) => 
-      apiRequest(`/api/users/${id}/avatar`, { 
-        method: 'POST', 
+      api.post(`/users/${id}/avatar`, { 
         headers: {}, // Let browser set the content type with boundary
         body: formData 
       }),
     uploadResume: (id: string, formData: FormData) => 
-      apiRequest(`/api/users/${id}/resume`, { 
-        method: 'POST', 
+      api.post(`/users/${id}/resume`, { 
         headers: {}, // Let browser set the content type with boundary
         body: formData 
       }),
@@ -69,40 +130,33 @@ export const api = {
   
   // Task endpoints
   tasks: {
-    getAll: () => apiRequest('/api/tasks'),
-    getById: (id: string) => apiRequest(`/api/tasks/${id}`),
-    create: (data: any) => apiRequest('/api/tasks', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => apiRequest(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    getByEmployer: (employerId: string) => apiRequest(`/api/tasks/employer/${employerId}`),
+    getAll: () => api.get('/tasks'),
+    getById: (id: string) => api.get(`/tasks/${id}`),
+    create: (data: any) => api.post('/tasks', data),
+    update: (id: string, data: any) => api.put(`/tasks/${id}`, data),
+    getByEmployer: (employerId: string) => api.get(`/tasks/employer/${employerId}`),
   },
   
   // Application endpoints
   applications: {
-    getAll: () => apiRequest('/api/applications'),
-    getById: (id: string) => apiRequest(`/api/applications/${id}`),
-    create: (data: any) => apiRequest('/api/applications', { method: 'POST', body: JSON.stringify(data) }),
-    updateStatus: (id: string, status: string) => apiRequest(`/api/applications/${id}/status`, { 
-      method: 'PATCH', 
-      body: JSON.stringify({ status }) 
-    }),
-    getByStudent: (studentId: string) => apiRequest(`/api/applications/student/${studentId}`),
-    getByTask: (taskId: string) => apiRequest(`/api/applications/task/${taskId}`),
+    getAll: () => api.get('/applications'),
+    getById: (id: string) => api.get(`/applications/${id}`),
+    create: (data: any) => api.post('/applications', data),
+    updateStatus: (id: string, status: string) => api.patch(`/applications/${id}/status`, { status }),
+    getByStudent: (studentId: string) => api.get(`/applications/student/${studentId}`),
+    getByTask: (taskId: string) => api.get(`/applications/task/${taskId}`),
   },
   
   // Payment endpoints
   payments: {
-    getAll: () => apiRequest('/api/payments'),
-    getById: (id: string) => apiRequest(`/api/payments/${id}`),
-    create: (data: any) => apiRequest('/api/payments', { method: 'POST', body: JSON.stringify(data) }),
-    updateStatus: (id: string, status: string) => apiRequest(`/api/payments/${id}/status`, { 
-      method: 'PATCH', 
-      body: JSON.stringify({ status }) 
-    }),
-    getByEmployer: (employerId: string) => apiRequest(`/api/payments/employer/${employerId}`),
-    getByStudent: (studentId: string) => apiRequest(`/api/payments/student/${studentId}`),
+    getAll: () => api.get('/payments'),
+    getById: (id: string) => api.get(`/payments/${id}`),
+    create: (data: any) => api.post('/payments', data),
+    updateStatus: (id: string, status: string) => api.patch(`/payments/${id}/status`, { status }),
+    getByEmployer: (employerId: string) => api.get(`/payments/employer/${employerId}`),
+    getByStudent: (studentId: string) => api.get(`/payments/student/${studentId}`),
     uploadProof: (id: string, formData: FormData) => 
-      apiRequest(`/api/payments/${id}/proof`, { 
-        method: 'POST', 
+      api.post(`/payments/${id}/proof`, { 
         headers: {}, // Let browser set the content type with boundary
         body: formData 
       }),
@@ -110,49 +164,47 @@ export const api = {
   
   // Message endpoints
   messages: {
-    getAll: () => apiRequest('/api/messages'),
-    getById: (id: string) => apiRequest(`/api/messages/${id}`),
-    create: (data: any) => apiRequest('/api/messages', { method: 'POST', body: JSON.stringify(data) }),
-    markAsRead: (id: string) => apiRequest(`/api/messages/${id}/read`, { method: 'PATCH' }),
+    getAll: () => api.get('/messages'),
+    getById: (id: string) => api.get(`/messages/${id}`),
+    create: (data: any) => api.post('/messages', data),
+    markAsRead: (id: string) => api.patch(`/messages/${id}/read`),
     getConversation: (userId1: string, userId2: string, taskId?: string) => {
       const endpoint = taskId 
-        ? `/api/messages/conversation/${userId1}/${userId2}?taskId=${taskId}`
-        : `/api/messages/conversation/${userId1}/${userId2}`;
-      return apiRequest(endpoint);
+        ? `/messages/conversation/${userId1}/${userId2}?taskId=${taskId}`
+        : `/messages/conversation/${userId1}/${userId2}`;
+      return api.get(endpoint);
     },
-    getUnreadCount: (userId: string) => apiRequest(`/api/messages/unread/${userId}`),
+    getUnreadCount: (userId: string) => api.get(`/messages/unread/${userId}`),
     uploadAttachment: (formData: FormData) => 
-      apiRequest('/api/messages/attachment', { 
-        method: 'POST', 
+      api.post('/messages/attachment', formData, { 
         headers: {}, // Let browser set the content type with boundary
-        body: formData 
       }),
   },
   
   // Review endpoints
   reviews: {
-    getAll: () => apiRequest('/api/reviews'),
-    getById: (id: string) => apiRequest(`/api/reviews/${id}`),
-    create: (data: any) => apiRequest('/api/reviews', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => apiRequest(`/api/reviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    getByUser: (userId: string) => apiRequest(`/api/reviews/user/${userId}`),
-    getByTask: (taskId: string) => apiRequest(`/api/reviews/task/${taskId}`),
+    getAll: () => api.get('/reviews'),
+    getById: (id: string) => api.get(`/reviews/${id}`),
+    create: (data: any) => api.post('/reviews', data),
+    update: (id: string, data: any) => api.put(`/reviews/${id}`, data),
+    getByUser: (userId: string) => api.get(`/reviews/user/${userId}`),
+    getByTask: (taskId: string) => api.get(`/reviews/task/${taskId}`),
   },
   
   // Badges endpoints
   badges: {
-    getAll: () => apiRequest('/api/badges'),
-    getByUser: (userId: string) => apiRequest(`/api/badges/user/${userId}`),
+    getAll: () => api.get('/badges'),
+    getByUser: (userId: string) => api.get(`/badges/user/${userId}`),
   },
   
   // Analytics endpoints
   analytics: {
-    getDashboard: (userId: string) => apiRequest(`/api/analytics/dashboard/${userId}`),
-    getTasksStats: (period: string) => apiRequest(`/api/analytics/tasks?period=${period}`),
-    getUsersStats: (period: string) => apiRequest(`/api/analytics/users?period=${period}`),
-    getPaymentsStats: (period: string) => apiRequest(`/api/analytics/payments?period=${period}`),
+    getDashboard: (userId: string) => api.get(`/analytics/dashboard/${userId}`),
+    getTasksStats: (period: string) => api.get(`/analytics/tasks?period=${period}`),
+    getUsersStats: (period: string) => api.get(`/analytics/users?period=${period}`),
+    getPaymentsStats: (period: string) => api.get(`/analytics/payments?period=${period}`),
   },
   
   // Health check
-  health: () => apiRequest('/health'),
+  health: () => api.get('/health'),
 }; 

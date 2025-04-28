@@ -10,9 +10,9 @@ router.get('/', async (req, res) => {
       .populate('task', 'title description budget deadline')
       .populate('student', 'name email profile.avatar')
       .sort({ createdAt: -1 });
-    res.status(200).json(applications);
+    return res.status(200).json(applications);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -27,9 +27,9 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Application not found' });
     }
     
-    res.status(200).json(application);
+    return res.status(200).json(application);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -54,12 +54,12 @@ router.post('/', async (req, res) => {
     
     await newApplication.save();
     
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Application submitted successfully',
       application: newApplication
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -83,9 +83,9 @@ router.patch('/:id/status', async (req, res) => {
       return res.status(404).json({ message: 'Application not found' });
     }
     
-    res.status(200).json(updatedApplication);
+    return res.status(200).json(updatedApplication);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -97,9 +97,9 @@ router.get('/student/:studentId', async (req, res) => {
       .populate('student', 'name email profile.avatar')
       .sort({ createdAt: -1 });
     
-    res.status(200).json(applications);
+    return res.status(200).json(applications);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -111,9 +111,9 @@ router.get('/task/:taskId', async (req, res) => {
       .populate('student', 'name email profile.avatar')
       .sort({ createdAt: -1 });
     
-    res.status(200).json(applications);
+    return res.status(200).json(applications);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 

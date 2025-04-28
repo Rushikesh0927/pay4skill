@@ -77,4 +77,5 @@ reviewSchema.pre('save', async function(next) {
 
 const Review = model<IReview>('Review', reviewSchema);
 
+export { Review };
 export default Review; 

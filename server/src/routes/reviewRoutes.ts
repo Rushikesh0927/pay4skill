@@ -11,9 +11,9 @@ router.get('/', async (req, res) => {
       .populate('reviewer', 'name email profile.avatar')
       .populate('reviewee', 'name email profile.avatar')
       .sort({ createdAt: -1 });
-    res.status(200).json(reviews);
+    return res.status(200).json(reviews);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -29,9 +29,9 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
     
-    res.status(200).json(review);
+    return res.status(200).json(review);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -56,12 +56,12 @@ router.post('/', async (req, res) => {
     
     await newReview.save();
     
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Review submitted successfully',
       review: newReview
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -82,9 +82,9 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
     
-    res.status(200).json(updatedReview);
+    return res.status(200).json(updatedReview);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -97,9 +97,9 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
     
-    res.status(200).json({ message: 'Review deleted successfully' });
+    return res.status(200).json({ message: 'Review deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -112,9 +112,9 @@ router.get('/user/:userId', async (req, res) => {
       .populate('reviewee', 'name email profile.avatar')
       .sort({ createdAt: -1 });
     
-    res.status(200).json(reviews);
+    return res.status(200).json(reviews);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -127,9 +127,9 @@ router.get('/task/:taskId', async (req, res) => {
       .populate('reviewee', 'name email profile.avatar')
       .sort({ createdAt: -1 });
     
-    res.status(200).json(reviews);
+    return res.status(200).json(reviews);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    return res.status(500).json({ message: 'Server error', error });
   }
 });
 

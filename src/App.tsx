@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -29,44 +30,46 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Student Routes */}
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/profile" element={<StudentProfile />} />
-          <Route path="/student/tasks" element={<StudentTasks />} />
-          <Route path="/student/applications" element={<StudentApplications />} />
-          <Route path="/student/chat" element={<StudentChat />} />
-          <Route path="/student/earnings" element={<StudentEarnings />} />
-          
-          {/* Employer Routes */}
-          <Route path="/employer/dashboard" element={<EmployerDashboard />} />
-          <Route path="/employer/profile" element={<EmployerProfile />} />
-          <Route path="/employer/post-task" element={<PostTask />} />
-          <Route path="/employer/tasks" element={<EmployerTasks />} />
-          <Route path="/employer/chat" element={<EmployerChat />} />
-          <Route path="/employer/analytics" element={<EmployerAnalytics />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin" element={<Login />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<UsersManagement />} />
-          <Route path="/admin/tasks" element={<TasksManagement />} />
-          <Route path="/admin/disputes" element={<DisputesPage />} />
-          <Route path="/admin/analytics" element={<AnalyticsPage />} />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            {/* Student Routes */}
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/profile" element={<StudentProfile />} />
+            <Route path="/student/tasks" element={<StudentTasks />} />
+            <Route path="/student/applications" element={<StudentApplications />} />
+            <Route path="/student/chat" element={<StudentChat />} />
+            <Route path="/student/earnings" element={<StudentEarnings />} />
+            
+            {/* Employer Routes */}
+            <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+            <Route path="/employer/profile" element={<EmployerProfile />} />
+            <Route path="/employer/post-task" element={<PostTask />} />
+            <Route path="/employer/tasks" element={<EmployerTasks />} />
+            <Route path="/employer/chat" element={<EmployerChat />} />
+            <Route path="/employer/analytics" element={<EmployerAnalytics />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<Login />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UsersManagement />} />
+            <Route path="/admin/tasks" element={<TasksManagement />} />
+            <Route path="/admin/disputes" element={<DisputesPage />} />
+            <Route path="/admin/analytics" element={<AnalyticsPage />} />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

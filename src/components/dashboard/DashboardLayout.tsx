@@ -5,14 +5,16 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 
+interface User {
+  fullName: string;
+  email: string;
+  avatar?: string;
+}
+
 interface DashboardLayoutProps {
   children: ReactNode;
   role: 'student' | 'employer' | 'admin';
-  user: {
-    name: string;
-    email: string;
-    avatar?: string;
-  };
+  user: User;
 }
 
 export default function DashboardLayout({ children, role, user }: DashboardLayoutProps) {

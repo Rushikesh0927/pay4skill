@@ -5,38 +5,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     try {
-      // Firebase authentication would be integrated here
-      // For now, we'll just simulate a login process
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await login(email, password);
       
       toast({
         title: "Login Successful",
         description: "Welcome back to Pay4Skill!",
       });
       
-      // Check user role and redirect to appropriate dashboard
+      // Redirect based on user role
       if (email.toLowerCase().includes('admin')) {
         navigate('/admin/dashboard');
-      } else if (email.toLowerCase().includes('student')) {
-        navigate('/student/dashboard');
       } else if (email.toLowerCase().includes('employer')) {
         navigate('/employer/dashboard');
       } else {
-        // Default to student dashboard if role is not determined
         navigate('/student/dashboard');
       }
     } catch (error) {
@@ -45,8 +40,6 @@ const LoginForm = () => {
         description: "Please check your credentials and try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

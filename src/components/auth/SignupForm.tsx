@@ -1,16 +1,17 @@
-
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SignupForm = () => {
   // Get role from URL query param if provided
   const location = useLocation();
+  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const initialRole = params.get('role') || '';
 
@@ -21,9 +22,9 @@ const SignupForm = () => {
     confirmPassword: '',
     role: initialRole || 'student',
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const { signup, isLoading } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -46,27 +47,26 @@ const SignupForm = () => {
       return;
     }
     
-    setIsLoading(true);
-    
     try {
-      // Firebase authentication would be integrated here
-      // For now, we'll just simulate a signup process
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await signup(formData);
       
       toast({
         title: "Account created successfully",
-        description: "Welcome to JobFlowVerse!",
+        description: "Welcome to Pay4Skill!",
       });
       
-      // Redirect to appropriate dashboard would happen here
+      // Redirect to appropriate dashboard based on role
+      if (formData.role === 'employer') {
+        navigate('/employer/dashboard');
+      } else {
+        navigate('/student/dashboard');
+      }
     } catch (error) {
       toast({
         title: "Sign up failed",
         description: "There was an error creating your account. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -78,7 +78,7 @@ const SignupForm = () => {
     <div className="w-full max-w-md mx-auto p-6 bg-white rounded-xl shadow-sm border border-neutral-100">
       <div className="text-center mb-8">
         <h2 className="font-heading text-2xl font-bold mb-2">Create an Account</h2>
-        <p className="text-neutral-600">Join JobFlowVerse and start your journey</p>
+        <p className="text-neutral-600">Join Pay4Skill and start your journey</p>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">

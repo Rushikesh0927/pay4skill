@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Upload, Award, Edit, Save, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
 // Mock data for badges
 const badges = [
@@ -47,6 +48,7 @@ export default function Profile() {
     experience: '',
     resumeUrl: '',
   });
+  const [isLoadingUpload, setIsLoadingUpload] = useState(false);
 
   // Initialize profile with user data when component mounts or user changes
   useEffect(() => {
@@ -107,14 +109,73 @@ export default function Profile() {
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // In a real app, you would upload the file to a server
+    if (!file || !user) return;
+    
+    try {
+      setIsLoadingUpload(true);
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('resume', file);
+      
+      // Upload resume using API
+      const result = await api.users.uploadResume(user._id, formData);
+      
+      // Update profile with new resume URL
+      setProfile({
+        ...profile,
+        resumeUrl: result.resumeUrl
+      });
+      
       toast({
         title: "Resume uploaded",
         description: "Your resume has been successfully uploaded.",
       });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your resume.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingUpload(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    try {
+      setIsLoadingUpload(true);
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      // Upload avatar using API
+      const result = await api.users.uploadAvatar(user._id, formData);
+      
+      // Update profile with new avatar URL
+      setProfile({
+        ...profile,
+        avatar: result.avatarUrl
+      });
+      
+      toast({
+        title: "Photo uploaded",
+        description: "Your profile photo has been successfully updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your photo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingUpload(false);
     }
   };
 
@@ -166,10 +227,25 @@ export default function Profile() {
                     <AvatarFallback>{profile.fullName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <Button variant="outline" className="w-full sm:w-auto">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Photo
-                    </Button>
+                    <div className="flex flex-col items-center space-y-2 sm:space-y-0">
+                      <Input
+                        id="avatar"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                        ref={(input) => input && input.setAttribute('id', 'avatar')}
+                      />
+                      <Button 
+                        variant="outline" 
+                        className="w-full sm:w-auto"
+                        onClick={() => document.getElementById('avatar')?.click()}
+                        disabled={isLoadingUpload}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Photo
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -293,6 +369,7 @@ export default function Profile() {
                         type="file" 
                         accept=".pdf,.doc,.docx" 
                         onChange={handleFileUpload}
+                        disabled={isLoadingUpload}
                       />
                       <p className="text-xs text-neutral-500">
                         Upload your resume (PDF, DOC, or DOCX format)

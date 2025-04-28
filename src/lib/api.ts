@@ -7,16 +7,21 @@ const API_URL = process.env.NODE_ENV === 'production'
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
   
+  // Get token from localStorage if it exists
+  const token = localStorage.getItem('token');
+  
   const defaultHeaders = {
     'Content-Type': 'application/json',
   };
+  
+  // Add authorization header if token exists
+  const headers = token
+    ? { ...defaultHeaders, Authorization: `Bearer ${token}`, ...options.headers }
+    : { ...defaultHeaders, ...options.headers };
 
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -29,12 +34,36 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
 // API endpoints
 export const api = {
+  // Auth endpoints
+  auth: {
+    login: (data: { email: string; password: string }) => 
+      apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    register: (data: any) => 
+      apiRequest('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    forgotPassword: (email: string) => 
+      apiRequest('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+    resetPassword: (data: { token: string; password: string }) => 
+      apiRequest('/api/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+  },
+  
   // User endpoints
   users: {
     getAll: () => apiRequest('/api/users'),
     getById: (id: string) => apiRequest(`/api/users/${id}`),
     create: (data: any) => apiRequest('/api/users', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => apiRequest(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    uploadAvatar: (id: string, formData: FormData) => 
+      apiRequest(`/api/users/${id}/avatar`, { 
+        method: 'POST', 
+        headers: {}, // Let browser set the content type with boundary
+        body: formData 
+      }),
+    uploadResume: (id: string, formData: FormData) => 
+      apiRequest(`/api/users/${id}/resume`, { 
+        method: 'POST', 
+        headers: {}, // Let browser set the content type with boundary
+        body: formData 
+      }),
   },
   
   // Task endpoints
@@ -70,6 +99,12 @@ export const api = {
     }),
     getByEmployer: (employerId: string) => apiRequest(`/api/payments/employer/${employerId}`),
     getByStudent: (studentId: string) => apiRequest(`/api/payments/student/${studentId}`),
+    uploadProof: (id: string, formData: FormData) => 
+      apiRequest(`/api/payments/${id}/proof`, { 
+        method: 'POST', 
+        headers: {}, // Let browser set the content type with boundary
+        body: formData 
+      }),
   },
   
   // Message endpoints
@@ -85,6 +120,12 @@ export const api = {
       return apiRequest(endpoint);
     },
     getUnreadCount: (userId: string) => apiRequest(`/api/messages/unread/${userId}`),
+    uploadAttachment: (formData: FormData) => 
+      apiRequest('/api/messages/attachment', { 
+        method: 'POST', 
+        headers: {}, // Let browser set the content type with boundary
+        body: formData 
+      }),
   },
   
   // Review endpoints
@@ -95,6 +136,20 @@ export const api = {
     update: (id: string, data: any) => apiRequest(`/api/reviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     getByUser: (userId: string) => apiRequest(`/api/reviews/user/${userId}`),
     getByTask: (taskId: string) => apiRequest(`/api/reviews/task/${taskId}`),
+  },
+  
+  // Badges endpoints
+  badges: {
+    getAll: () => apiRequest('/api/badges'),
+    getByUser: (userId: string) => apiRequest(`/api/badges/user/${userId}`),
+  },
+  
+  // Analytics endpoints
+  analytics: {
+    getDashboard: (userId: string) => apiRequest(`/api/analytics/dashboard/${userId}`),
+    getTasksStats: (period: string) => apiRequest(`/api/analytics/tasks?period=${period}`),
+    getUsersStats: (period: string) => apiRequest(`/api/analytics/users?period=${period}`),
+    getPaymentsStats: (period: string) => apiRequest(`/api/analytics/payments?period=${period}`),
   },
   
   // Health check

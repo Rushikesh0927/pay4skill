@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface User {
   fullName: string;
@@ -19,9 +20,10 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, role, user }: DashboardLayoutProps) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    // TODO: Implement actual logout logic
+    logout();
     navigate('/login');
   };
 

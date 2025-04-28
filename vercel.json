@@ -32,8 +32,6 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
     "PORT": "8080",
     "NODE_ENV": "production"
   }

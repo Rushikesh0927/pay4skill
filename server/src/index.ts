@@ -16,6 +16,11 @@ import reviewRoutes from './routes/reviewRoutes';
 // Load environment variables
 dotenv.config();
 
+// Debug environment variables
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("MONGODB_URI exists:", !!process.env.MONGODB_URI);
+console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,11 +36,16 @@ app.use(cors({
 }));
 app.use(morgan('dev'));
 
+// Global error handler for mongoose
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI as string)
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .catch((err) => console.error('MongoDB connection error details:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -51,10 +61,26 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Debug route
+app.get('/debug-info', (req, res) => {
+  res.json({
+    envVars: {
+      nodeEnv: process.env.NODE_ENV,
+      port: process.env.PORT,
+      mongoDBURIExists: !!process.env.MONGODB_URI,
+      jwtSecretExists: !!process.env.JWT_SECRET,
+    },
+    mongoConnection: {
+      readyState: mongoose.connection.readyState,
+      // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    }
+  });
+});
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Global error handler caught:', err.stack);
+  res.status(500).json({ message: 'Something went wrong!', error: process.env.NODE_ENV === 'development' ? err.message : undefined });
 });
 
 // Start server

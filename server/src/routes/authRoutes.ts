@@ -11,15 +11,25 @@ const router = Router();
 // @access  Public
 router.post('/register', async (req: Request, res: Response) => {
   try {
+    console.log("Register request received:", req.body);
     const { name, email, password, role } = req.body;
 
+    // Validation
+    if (!name || !email || !password) {
+      console.log("Missing required fields:", { name: !!name, email: !!email, password: !!password });
+      return res.status(400).json({ message: 'Please provide name, email and password' });
+    }
+
     // Check if user already exists
+    console.log("Checking if user exists:", email);
     let user = await User.findOne({ email });
     if (user) {
+      console.log("User already exists:", email);
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create new user
+    console.log("Creating new user with role:", role || 'student');
     user = new User({
       name,
       email,
@@ -28,9 +38,20 @@ router.post('/register', async (req: Request, res: Response) => {
     });
 
     // Save user to database
-    await user.save();
+    try {
+      console.log("Saving user to database");
+      await user.save();
+      console.log("User saved successfully:", user._id);
+    } catch (saveError) {
+      console.error("Error saving user:", saveError);
+      return res.status(500).json({ 
+        message: 'Error creating user account', 
+        details: process.env.NODE_ENV === 'development' ? saveError.message : undefined 
+      });
+    }
 
     // Generate JWT
+    console.log("Generating JWT token");
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET as string,
@@ -38,6 +59,7 @@ router.post('/register', async (req: Request, res: Response) => {
     );
 
     // Return token and user data
+    console.log("Registration successful, returning user data");
     res.status(201).json({
       token,
       user: {
@@ -49,7 +71,10 @@ router.post('/register', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error in register:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Server error', 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 

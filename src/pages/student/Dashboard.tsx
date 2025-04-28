@@ -4,6 +4,8 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Progress } from '@/components/ui/progress';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FileText, DollarSign, Star, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const mockData = {
   tasksCompleted: [
@@ -23,18 +25,27 @@ const mockData = {
 };
 
 const StudentDashboard = () => {
-  const user = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    avatar: undefined,
-  };
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+  
+  // Show loading state while checking authentication
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
     <DashboardLayout role="student" user={user}>
       <div className="space-y-6">
         {/* Welcome Banner */}
         <div className="rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
-          <h1 className="text-2xl font-bold">Welcome back, {user.name}! 👋</h1>
+          <h1 className="text-2xl font-bold">Welcome back, {user.fullName}! 👋</h1>
           <p className="mt-2 text-blue-100">
             "Success is not final, failure is not fatal: it is the courage to continue that counts."
           </p>

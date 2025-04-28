@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FileText, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const mockData = {
   monthlyHiring: [
@@ -22,18 +24,27 @@ const mockData = {
 };
 
 const EmployerDashboard = () => {
-  const user = {
-    name: 'Sarah Johnson',
-    email: 'sarah@company.com',
-    avatar: undefined,
-  };
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+  
+  // Show loading state while checking authentication
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
     <DashboardLayout role="employer" user={user}>
       <div className="space-y-6">
         {/* Welcome Banner */}
         <div className="rounded-lg bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
-          <h1 className="text-2xl font-bold">Welcome back, {user.name}! 👋</h1>
+          <h1 className="text-2xl font-bold">Welcome back, {user.fullName}! 👋</h1>
           <p className="mt-2 text-green-100">
             "The best way to predict the future is to create it."
           </p>

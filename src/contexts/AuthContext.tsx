@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { api } from '@/lib/api';
 
 type UserRole = 'student' | 'employer' | 'admin';
 
 interface User {
   _id: string;
-  fullName: string;
+  name: string;
+  fullName?: string;
   email: string;
   role: UserRole;
   avatar?: string;
@@ -13,6 +15,13 @@ interface User {
   location?: string;
   education?: string;
   experience?: string;
+  profile?: {
+    avatar?: string;
+    location?: string;
+    education?: string;
+    experience?: string;
+    skills?: string[];
+  };
 }
 
 interface AuthContextType {
@@ -32,62 +41,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Load user from token
+    const loadUserFromToken = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        // Get current user data
+        const userData = await api.auth.getCurrentUser();
+        setUser(userData);
+      } catch (error) {
+        console.error('Failed to load user from token:', error);
+        // Clear invalid token
+        localStorage.removeItem('token');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadUserFromToken();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // In a real implementation, this would be an API call to authenticate
-      // For now, simulate API login and determine user role from email
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Real API call to authenticate
+      const response = await api.auth.login({ email, password });
       
-      // Simulate response data
-      let userData: User;
+      // Save token and user data
+      localStorage.setItem('token', response.token);
       
-      if (email.toLowerCase().includes('admin')) {
-        userData = {
-          _id: 'admin-123',
-          fullName: 'Admin User',
-          email: email,
-          role: 'admin',
-        };
-      } else if (email.toLowerCase().includes('employer')) {
-        userData = {
-          _id: 'employer-123',
-          fullName: 'Employer User',
-          email: email,
-          role: 'employer',
-          location: 'San Francisco, CA',
-          bio: 'Tech company looking for skilled developers',
-        };
-      } else {
-        userData = {
-          _id: 'student-123',
-          fullName: 'Student User',
-          email: email,
-          role: 'student',
-          bio: 'Passionate student looking for opportunities',
-          location: 'New York, USA',
-          education: 'Bachelor of Computer Science',
-          experience: '1 year of freelance work',
-          skills: ['JavaScript', 'React', 'Node.js'],
-        };
-      }
-      
+      // Set user data from response
+      const userData = response.user;
       setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      // Store a fake token to simulate authentication
-      localStorage.setItem('token', 'fake-jwt-token');
+
+      // Fallback in case API doesn't return full user data
+      if (!userData) {
+        const userDetails = await api.auth.getCurrentUser();
+        setUser(userDetails);
+      }
+
       return;
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Login failed');
+      throw new Error('Invalid email or password');
     } finally {
       setIsLoading(false);
     }
@@ -96,26 +96,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (userData: any) => {
     setIsLoading(true);
     try {
-      // In a real implementation, this would be an API call to create user
-      // For now, simulate API registration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Real API call to register user
+      const response = await api.auth.register(userData);
       
-      // Create a simulated user based on registration data
-      const newUser: User = {
-        _id: `${userData.role}-${Date.now()}`,
-        fullName: userData.fullName,
-        email: userData.email,
-        role: userData.role as UserRole,
-      };
+      // Save token and user data
+      localStorage.setItem('token', response.token);
+      setUser(response.user);
       
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      // Store a fake token to simulate authentication
-      localStorage.setItem('token', 'fake-jwt-token');
       return;
     } catch (error) {
       console.error('Signup error:', error);
-      throw new Error('Signup failed');
+      throw new Error('Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +115,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     // Clear user data and token
     setUser(null);
-    localStorage.removeItem('user');
     localStorage.removeItem('token');
   };
 
@@ -133,16 +123,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     setIsLoading(true);
     try {
-      // In a real implementation, this would be an API call to update user
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedUser = { ...user, ...userData };
+      // Real API call to update user
+      const updatedUser = await api.users.update(user._id, userData);
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
       return;
     } catch (error) {
       console.error('Update user error:', error);
-      throw new Error('Failed to update user');
+      throw new Error('Failed to update user profile');
     } finally {
       setIsLoading(false);
     }

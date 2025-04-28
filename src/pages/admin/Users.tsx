@@ -1,197 +1,441 @@
-
-import React, { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Shield, User, UserCheck, UserX } from 'lucide-react';
-import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"
 import { Input } from '@/components/ui/input';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { 
+  User, 
+  MoreHorizontal, 
+  Search, 
+  Filter, 
+  UserPlus, 
+  Check, 
+  Ban 
+} from 'lucide-react';
+import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
-// Mock user data
-const mockUsers = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', role: 'student', status: 'active', joinDate: '2023-09-15' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'student', status: 'active', joinDate: '2023-08-22' },
-  { id: 3, name: 'Bob Johnson', email: 'bob@company.com', role: 'employer', status: 'active', joinDate: '2023-10-05' },
-  { id: 4, name: 'Alice Williams', email: 'alice@example.com', role: 'student', status: 'blocked', joinDate: '2023-07-30' },
-  { id: 5, name: 'Charlie Brown', email: 'charlie@company.com', role: 'employer', status: 'active', joinDate: '2023-09-01' },
-  { id: 6, name: 'Emily Davis', email: 'emily@example.com', role: 'student', status: 'active', joinDate: '2023-10-15' },
-  { id: 7, name: 'David Wilson', email: 'david@company.com', role: 'employer', status: 'active', joinDate: '2023-08-10' },
-];
+interface UserType {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'employer' | 'admin';
+  createdAt: string;
+  status: 'active' | 'inactive' | 'suspended';
+  profile?: {
+    avatar?: string;
+    location?: string;
+  }
+}
 
-const UsersManagement = () => {
-  const { toast } = useToast();
+const UsersPage = () => {
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState<'all' | 'student' | 'employer'>('all');
-
-  const showNotification = (message: string) => {
-    toast({
-      title: "Notification",
-      description: message,
-    });
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // User detail/edit dialog state
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Redirect to login if not authenticated or not admin
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else if (user && user.role !== 'admin') {
+      navigate(`/${user.role}/dashboard`);
+    }
+  }, [isAuthenticated, user, navigate]);
+  
+  // Fetch users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.users.getAll();
+        
+        // Transform the data to include status (in a real app, this would come from the API)
+        const transformedUsers = response.map((user: any) => ({
+          ...user,
+          status: user.status || 'active', // Default to active if status not provided
+        }));
+        
+        setUsers(transformedUsers);
+        setFilteredUsers(transformedUsers);
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+        setError('Failed to load users data');
+        
+        // Fallback mock data in case of error
+        const mockUsers = [
+          {
+            _id: '1',
+            name: 'John Doe',
+            email: 'john@example.com',
+            role: 'student' as const,
+            createdAt: new Date().toISOString(),
+            status: 'active' as const,
+            profile: { location: 'New York' }
+          },
+          {
+            _id: '2',
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            role: 'employer' as const,
+            createdAt: new Date().toISOString(),
+            status: 'active' as const,
+            profile: { location: 'San Francisco' }
+          },
+          {
+            _id: '3',
+            name: 'Admin User',
+            email: 'admin@example.com',
+            role: 'admin' as const,
+            createdAt: new Date().toISOString(),
+            status: 'active' as const,
+            profile: { location: 'Chicago' }
+          }
+        ];
+        setUsers(mockUsers);
+        setFilteredUsers(mockUsers);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+  
+  // Apply filters and search
+  useEffect(() => {
+    let result = [...users];
+    
+    // Apply search term
+    if (searchTerm) {
+      result = result.filter(user => 
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply role filter
+    if (roleFilter !== 'all') {
+      result = result.filter(user => user.role === roleFilter);
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(user => user.status === statusFilter);
+    }
+    
+    setFilteredUsers(result);
+  }, [users, searchTerm, roleFilter, statusFilter]);
+  
+  // Handle user status change
+  const handleStatusChange = async (userId: string, newStatus: 'active' | 'inactive' | 'suspended') => {
+    try {
+      // In a real app, make API call to update user status
+      // await api.users.updateStatus(userId, newStatus);
+      
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user._id === userId ? { ...user, status: newStatus } : user
+        )
+      );
+    } catch (err) {
+      console.error('Failed to update user status:', err);
+      setError('Failed to update user status');
+    }
   };
-
-  const toggleUserStatus = (userId: number, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
-    showNotification(`User #${userId} ${newStatus === 'active' ? 'unblocked' : 'blocked'} successfully`);
+  
+  // Handle view user details
+  const handleViewUser = (user: UserType) => {
+    setSelectedUser(user);
+    setIsDialogOpen(true);
   };
-
-  const filteredUsers = mockUsers.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesRole;
-  });
+  
+  // Show loading state while checking authentication
+  if (!user || isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
-    <DashboardLayout userRole="admin">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
-        
-        <div className="flex flex-col md:flex-row gap-3 mt-3 md:mt-0 w-full md:w-auto">
-          <Input 
-            placeholder="Search users..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs"
-          />
-          
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>Filter: {filterRole === 'all' ? 'All Users' : filterRole === 'student' ? 'Students' : 'Employers'}</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="grid gap-1 p-2 w-[200px]">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setFilterRole('all')}
-                      className={filterRole === 'all' ? 'bg-accent' : ''}
-                    >
-                      All Users
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setFilterRole('student')}
-                      className={filterRole === 'student' ? 'bg-accent' : ''}
-                    >
-                      Students
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setFilterRole('employer')}
-                      className={filterRole === 'employer' ? 'bg-accent' : ''}
-                    >
-                      Employers
-                    </Button>
-                  </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+    <DashboardLayout role="admin" user={user}>
+      <div className="container py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <Button>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
         </div>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <div className="flex justify-between items-center">
-              <span>All Users ({filteredUsers.length})</span>
-              <Button variant="outline" onClick={() => showNotification("This would export user data")}>
-                Export Data
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-left p-3 font-medium text-sm">Name</th>
-                  <th className="text-left p-3 font-medium text-sm">Email</th>
-                  <th className="text-left p-3 font-medium text-sm">Role</th>
-                  <th className="text-left p-3 font-medium text-sm">Status</th>
-                  <th className="text-left p-3 font-medium text-sm">Join Date</th>
-                  <th className="text-right p-3 font-medium text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="p-3">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center mr-3">
-                          <User className="h-4 w-4 text-neutral-500" />
-                        </div>
-                        {user.name}
-                      </div>
-                    </td>
-                    <td className="p-3 text-sm">{user.email}</td>
-                    <td className="p-3">
-                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                        user.role === 'student' 
-                          ? 'bg-blue-100 text-blue-700' 
-                          : 'bg-green-100 text-green-700'
-                      }`}>
-                        {user.role === 'student' ? 'Student' : 'Employer'}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                        user.status === 'active' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        {user.status === 'active' ? 'Active' : 'Blocked'}
-                      </div>
-                    </td>
-                    <td className="p-3 text-sm">{new Date(user.joinDate).toLocaleDateString()}</td>
-                    <td className="p-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => showNotification(`Viewing ${user.name}'s profile`)}
-                        >
-                          <UserCheck className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </Button>
-                        
-                        <Button 
-                          variant={user.status === 'active' ? "destructive" : "outline"} 
-                          size="sm"
-                          onClick={() => toggleUserStatus(user.id, user.status)}
-                        >
-                          {user.status === 'active' ? (
-                            <>
-                              <UserX className="h-4 w-4 mr-1" />
-                              Block
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="h-4 w-4 mr-1" />
-                              Unblock
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
-        </CardContent>
-      </Card>
+        )}
+        
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search by name or email"
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="student">Students</SelectItem>
+                  <SelectItem value="employer">Employers</SelectItem>
+                  <SelectItem value="admin">Admins</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user._id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          user.role === 'admin' ? 'destructive' : 
+                          user.role === 'employer' ? 'default' : 
+                          'secondary'
+                        }>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.profile?.location || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          user.status === 'active' ? 'outline' : 
+                          user.status === 'inactive' ? 'secondary' : 
+                          'destructive'
+                        }>
+                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                              View Details
+                            </DropdownMenuItem>
+                            
+                            {user.status !== 'active' && (
+                              <DropdownMenuItem onClick={() => handleStatusChange(user._id, 'active')}>
+                                <Check className="mr-2 h-4 w-4" />
+                                Activate
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {user.status !== 'suspended' && (
+                              <DropdownMenuItem onClick={() => handleStatusChange(user._id, 'suspended')}>
+                                <Ban className="mr-2 h-4 w-4" />
+                                Suspend
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        
+        {/* User details dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+              <DialogDescription>
+                View and manage user information
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedUser && (
+              <div className="py-4">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center">
+                    {selectedUser.profile?.avatar ? (
+                      <img 
+                        src={selectedUser.profile.avatar} 
+                        alt={selectedUser.name} 
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-8 w-8 text-gray-500" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-lg">{selectedUser.name}</h3>
+                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-sm font-medium">Role:</span>
+                    <span className="text-sm">
+                      {selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1)}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-sm font-medium">Status:</span>
+                    <span className="text-sm">
+                      {selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1)}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-sm font-medium">Location:</span>
+                    <span className="text-sm">{selectedUser.profile?.location || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-sm font-medium">Joined:</span>
+                    <span className="text-sm">
+                      {new Date(selectedUser.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              {selectedUser && (
+                <div className="flex gap-2">
+                  {selectedUser.status !== 'active' && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        handleStatusChange(selectedUser._id, 'active');
+                        setIsDialogOpen(false);
+                      }}
+                    >
+                      Activate
+                    </Button>
+                  )}
+                  
+                  {selectedUser.status !== 'suspended' && (
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        handleStatusChange(selectedUser._id, 'suspended');
+                        setIsDialogOpen(false);
+                      }}
+                    >
+                      Suspend
+                    </Button>
+                  )}
+                </div>
+              )}
+              <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </DashboardLayout>
   );
 };
 
-export default UsersManagement;
+export default UsersPage;

@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
 interface TaskForm {
   title: string;
@@ -16,10 +19,16 @@ interface TaskForm {
   category: string;
   skills: string[];
   experience: string;
+  isRemote: boolean;
+  location: string;
 }
 
 export default function PostTask() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [form, setForm] = useState<TaskForm>({
     title: '',
     description: '',
@@ -28,26 +37,62 @@ export default function PostTask() {
     category: '',
     skills: [],
     experience: '',
+    isRemote: false,
+    location: '',
   });
   const [newSkill, setNewSkill] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the task data to your backend
-    toast({
-      title: 'Task posted successfully',
-      description: 'Your task has been posted and is now visible to students.',
-    });
-    // Reset form
-    setForm({
-      title: '',
-      description: '',
-      budget: '',
-      deadline: '',
-      category: '',
-      skills: [],
-      experience: '',
-    });
+    
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "You must be logged in to post a task.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Format the data for the API
+      const taskData = {
+        title: form.title,
+        description: form.description,
+        budget: {
+          amount: parseFloat(form.budget),
+          currency: 'USD'
+        },
+        deadline: new Date(form.deadline).toISOString(),
+        category: form.category,
+        skills: form.skills,
+        employer: user._id,
+        isRemote: form.isRemote,
+        location: form.location,
+      };
+      
+      // Call the API to create a new task
+      const response = await api.tasks.create(taskData);
+      
+      toast({
+        title: 'Task posted successfully',
+        description: 'Your task has been posted and is now visible to students.',
+      });
+      
+      // Navigate to tasks page
+      navigate('/employer/tasks');
+      
+    } catch (error: any) {
+      toast({
+        title: 'Failed to post task',
+        description: error.message || 'There was an error posting your task. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddSkill = () => {
@@ -67,11 +112,9 @@ export default function PostTask() {
     });
   };
 
-  const user = {
-    name: 'Tech Solutions Inc.',
-    email: 'contact@techsolutions.com',
-    avatar: undefined,
-  };
+  if (!user) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <DashboardLayout role="employer" user={user}>
@@ -177,7 +220,12 @@ export default function PostTask() {
                     placeholder="Add a skill"
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSkill();
+                      }
+                    }}
                   />
                   <Button type="button" onClick={handleAddSkill}>
                     Add
@@ -201,9 +249,38 @@ export default function PostTask() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="isRemote">Remote Work</Label>
+                  <Select
+                    value={form.isRemote ? "yes" : "no"}
+                    onValueChange={(value) => setForm({ ...form, isRemote: value === "yes" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Can this be done remotely?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes, can be done remotely</SelectItem>
+                      <SelectItem value="no">No, requires in-person presence</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <Button type="submit" className="w-full">
-                Post Task
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    placeholder="City, Country"
+                    disabled={form.isRemote}
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Posting...' : 'Post Task'}
               </Button>
             </form>
           </CardContent>

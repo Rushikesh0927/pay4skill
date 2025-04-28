@@ -1,12 +1,11 @@
 import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
 import mongoose from 'mongoose';
+import cors from 'cors';
 import dotenv from 'dotenv';
-import connectDB from './config/db';
+import morgan from 'morgan';
+
+// Route imports
+import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import taskRoutes from './routes/taskRoutes';
 import applicationRoutes from './routes/applicationRoutes';
@@ -17,42 +16,23 @@ import reviewRoutes from './routes/reviewRoutes';
 // Load environment variables
 dotenv.config();
 
-// Create Express app
+// Initialize Express app
 const app = express();
-const httpServer = createServer(app);
-
-// Create Socket.io server
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
+const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-}));
-app.use(helmet());
-app.use(morgan('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(morgan('dev'));
 
 // Connect to MongoDB
-connectDB();
-
-// Socket.io connection handling
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
-});
+mongoose
+  .connect(process.env.MONGODB_URI as string)
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/applications', applicationRoutes);
@@ -62,21 +42,18 @@ app.use('/api/reviews', reviewRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+  res.status(200).json({ status: 'ok' });
 });
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
+  res.status(500).json({ message: 'Something went wrong!' });
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+});
+
+export default app; 
